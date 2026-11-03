@@ -1,0 +1,31 @@
+广告设计师三级 · 全库随机抽题
+================================
+
+一、先在手机上直接用（不用打包）
+--------------------------------
+把 www/index.html 发到手机，用浏览器打开即可做题。
+所有题目、样式、恐龙图片都在这个 HTML 里，不需要联网。
+
+二、安卓 APK（不用安装 Android Studio）
+--------------------------------
+1. 安装 GitHub Desktop（https://desktop.github.com/）并登录 GitHub。
+2. GitHub Desktop → File → Add local repository → 选中本文件夹。
+3. 如果提示不是 Git 仓库，点 create a repository，然后 Publish repository。
+4. 打开网页版 GitHub 仓库 → Actions → 打包 Android APK → Run workflow。
+5. 等 3～8 分钟，在运行记录底部下载 ad-exam-apk.zip。
+6. 解压得到 ad-exam.apk，传到安卓手机安装（允许“未知来源”即可）。
+
+三、iPhone（不需要苹果开发者账号）
+--------------------------------
+1. 在 GitHub 仓库 Settings → Pages 中，把 Source 设为 GitHub Actions。
+2. Actions → 发布 iPhone 可安装网页版 → Run workflow，等它完成。
+3. iPhone 用 Safari 打开 Pages 网址。
+4. 点 分享 → 添加到主屏幕。第一次联网加载后，之后断网也能用。
+
+四、需要注意
+--------------------------------
+- 题库实际是 580 题（单选 376 / 判断 98 / 多选 106），不是 600 题。
+- 其中 61 道题在原题库里就标注“答案存疑”，App 保留原答案并显示提示。
+- 成绩、错题只存在本机；卸载 App 或清理数据会清空。
+- 苹果不允许安装未签名 App。没有苹果开发者账号时，请用上面的“添加到主屏幕”方式；原生 iOS 必须有 Mac + 苹果账号，详见 docs/iOS.md。
+- 如果 GitHub Actions 失败，通常是下载 Gradle/SDK 超时，重新 Run workflow 一次即可；仍然失败请把日志发我。

@@ -1,0 +1,14 @@
+node_modules/
+android/
+ios/
+*.apk
+*.aab
+*.ipa
+*.zip
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+.chrome*/
+.browser*/
+assets/_*.png
