@@ -1,6 +1,6 @@
-node_modules/
-android/
-ios/
+/node_modules/
+/android/
+/ios/
 *.apk
 *.aab
 *.ipa
@@ -11,4 +11,5 @@ __pycache__/
 *.pyc
 .chrome*/
 .browser*/
-assets/_*.png
+/assets/_*.png
+/广告设计师三级-离线刷题.html

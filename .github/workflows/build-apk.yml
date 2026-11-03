@@ -16,7 +16,7 @@ jobs:
   build-apk:
     name: 编译可安装 APK
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: 取出代码
@@ -27,20 +27,76 @@ jobs:
         with:
           node-version: 22
 
-      - name: 安装 JDK 21
+      # Capacitor 6 对应 SDK 34；Capacitor 7 强制要求 SDK 35。
+      # 先读取 package.json，自动选择 JDK 和额外的 SDK，避免版本错配。
+      - name: 检测 Capacitor 主版本
+        id: cap
+        shell: bash
+        run: |
+          set -euo pipefail
+          CAP_VERSION=$(node -e "const p=require('./package.json'); console.log((p.dependencies && p.dependencies['@capacitor/android']) || (p.devDependencies && p.devDependencies['@capacitor/android']) || '^6.0.0')")
+          CAP_MAJOR=$(printf '%s' "$CAP_VERSION" | sed -E 's/[^0-9]*([0-9]+).*/\1/')
+          if ! printf '%s' "$CAP_MAJOR" | grep -Eq '^[0-9]+$'; then
+            CAP_MAJOR=6
+          fi
+          echo "Capacitor Android 版本：$CAP_VERSION（major=$CAP_MAJOR）"
+          echo "major=$CAP_MAJOR" >> "$GITHUB_OUTPUT"
+          if [ "$CAP_MAJOR" -ge 7 ]; then
+            echo "java=21" >> "$GITHUB_OUTPUT"
+          else
+            echo "java=17" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 安装 JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{ steps.cap.outputs.java }}
 
-      - name: 准备 Android SDK
-        uses: android-actions/setup-android@v3
+      # v4 不再把已下架的 tools 包写进默认安装列表；
+      # 这里显式安装 Android 34 和 Build Tools 34.0.0。
+      - name: 安装 Android SDK 工具
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+
+      # v4 只负责 cmdline-tools/platform-tools；这里显式安装 34，
+      # 完全绕开 v3 时代已经下架的 tools 包。
+      - name: 安装 Android 34 与 Build Tools 34.0.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+
+      - name: 验证 SDK 34 已安装
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --version
+          sdkmanager --list_installed | grep -E 'platforms;android-34|build-tools;34\.0\.0'
+          echo "Android SDK 34 + Build Tools 34.0.0 就绪"
+
+      # Capacitor 7 的 WebView 代码无法用 compileSdk 34 编译。
+      # 如果你必须使用 Android 34，请把 Capacitor 固定在 6.x。
+      - name: Capacitor 7 额外安装 SDK 35
+        if: ${{ fromJSON(steps.cap.outputs.major) >= 7 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          echo "Capacitor 7 需要 compileSdk 35，已额外安装"
 
       - name: 安装 Capacitor 依赖
         run: npm install --no-audit --no-fund
 
-      - name: 生成 Android 原生工程
+      - name: 生成并同步 Android 工程
+        shell: bash
         run: |
+          set -euo pipefail
           if [ ! -d android ]; then
             npx cap add android
           fi
@@ -49,17 +105,40 @@ jobs:
       - name: 写入小恐龙图标和启动图
         run: node tools/apply-android-assets.mjs
 
-      - name: 编译 Debug APK
+      - name: 锁定 Capacitor 6 的 SDK 版本为 34
+        if: ${{ fromJSON(steps.cap.outputs.major) < 7 }}
+        shell: bash
         run: |
-          cd android
+          set -euo pipefail
+          test -f android/variables.gradle
+          sed -i -E 's/compileSdkVersion[[:space:]]*=[[:space:]]*[0-9]+/compileSdkVersion = 34/' android/variables.gradle
+          sed -i -E 's/targetSdkVersion[[:space:]]*=[[:space:]]*[0-9]+/targetSdkVersion = 34/' android/variables.gradle
+          grep -nE 'compileSdkVersion|targetSdkVersion' android/variables.gradle
+
+      - name: 清理本机 Android SDK 路径
+        run: rm -f android/local.properties
+
+      - name: 编译 Debug APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
           chmod +x gradlew
+          ./gradlew --version
           ./gradlew assembleDebug --no-daemon --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk ../ad-exam.apk
+
+      - name: 输出 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/ad-exam.apk
+          ls -lh dist/ad-exam.apk
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
           name: ad-exam-apk
-          path: ad-exam.apk
+          path: dist/ad-exam.apk
           if-no-files-found: error
           retention-days: 30

@@ -2,21 +2,17 @@
   "name": "ad-designer-exam",
   "version": "1.0.0",
   "private": true,
-  "description": "广告设计师三级理论 · 580题全库随机抽题，离线 Android / iOS 应用",
+  "description": "广告设计师三级理论 · 580题全库随机抽题，离线刷题 App",
   "scripts": {
     "build": "python tools/build.py",
-    "icons": "python tools/generate_icons.py",
     "cap:add:android": "npx cap add android",
-    "cap:add:ios": "npx cap add ios",
     "cap:sync": "npx cap sync",
-    "android": "npx cap open android",
-    "ios": "npx cap open ios"
+    "android": "npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.0",
-    "@capacitor/ios": "^7.0.0",
     "@capacitor/splash-screen": "^7.0.0",
     "@capacitor/status-bar": "^7.0.0"
   },
